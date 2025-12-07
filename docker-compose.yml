@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sa-backend
+    restart: unless-stopped
+    environment:
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - DATABASE_URL=sqlite:///./data/credit_scoring.db
+      - LOG_LEVEL=INFO
+      - TORCH_DEVICE=cpu
+    volumes:
+      - backend_data:/app/data
+    networks:
+      - sa-network
+    expose:
+      - "8000"
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sa-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    networks:
+      - sa-network
+    expose:
+      - "3000"
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: sa-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - sa-network
+
+volumes:
+  backend_data:
+    driver: local
+
+networks:
+  sa-network:
+    driver: bridge
+
