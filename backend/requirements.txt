@@ -1,0 +1,29 @@
+# FastAPI & Server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.4.2
+python-dotenv==1.0.0
+anyio>=3.7.1,<4.0.0
+
+# Database
+sqlalchemy==2.0.23
+
+# Web Scraping
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+crawl4ai>=0.3.0
+
+# NLP (CPU-only for on-premise)
+nltk==3.8.1
+transformers==4.35.2
+torch==2.2.0
+numpy==1.26.2
+
+# Utilities
+python-multipart==0.0.6
+python-dateutil==2.8.2
+
+# Async HTTP
+httpx==0.25.0
+
