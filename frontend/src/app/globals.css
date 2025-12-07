@@ -1,0 +1,32 @@
+/**
+ * Global styles with Tailwind CSS.
+ * Optimized for Indonesian text rendering.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+
+body {
+  background: #f9fafb;
+}
+
+/* Ensure proper display of Indonesian characters (é, è, ç, etc.) */
+* {
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background: #111827;
+  }
+}
+
