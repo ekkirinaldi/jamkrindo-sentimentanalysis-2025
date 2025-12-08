@@ -11,6 +11,244 @@ Sistem ini mengintegrasikan berbagai sumber data untuk memberikan penilaian risi
 - **Analisis Berita**: Mencari dan menganalisis 10 berita terbaru tentang perusahaan
 - **Risk Scoring**: Menghitung skor risiko berdasarkan sentimen, mentions, dan catatan hukum
 
+## 🏗️ Arsitektur Sistem
+
+```mermaid
+graph TB
+    User[👤 User Browser] -->|HTTP Request| Nginx[🌐 Nginx Reverse Proxy]
+    Nginx -->|/api/*| Backend[⚙️ FastAPI Backend<br/>Port 8000]
+    Nginx -->|/*| Frontend[🎨 Next.js Frontend<br/>Port 3000]
+    
+    Backend -->|Query| Perplexity[🔍 Perplexity AI API]
+    Backend -->|Analyze| Sentiment[💭 Sentiment Analysis<br/>VADER + Transformers]
+    Backend -->|Crawl| Mahkamah[⚖️ Mahkamah Agung<br/>Web Scraping]
+    Backend -->|Store| Database[(💾 SQLite Database)]
+    
+    Frontend -->|API Calls| Backend
+    
+    style User fill:#e1f5ff
+    style Nginx fill:#fff4e1
+    style Backend fill:#ffe1f5
+    style Frontend fill:#e1ffe1
+    style Database fill:#f0f0f0
+    style Perplexity fill:#e1f5ff
+    style Sentiment fill:#ffe1f5
+    style Mahkamah fill:#fff4e1
+```
+
+## 🔄 Alur Data (Data Flow)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Perplexity
+    participant Sentiment
+    participant Crawler
+    participant Database
+    participant RiskScoring
+
+    User->>Frontend: Input Nama Perusahaan
+    Frontend->>Backend: POST /api/v1/company/analyze
+    
+    par Parallel Processing
+        Backend->>Perplexity: Search Company Info
+        Perplexity-->>Backend: Company Data + Sources
+        Backend->>Sentiment: Analyze Sentiment
+        Sentiment-->>Backend: Sentiment Scores
+    and
+        Backend->>Crawler: Search Legal Records
+        Crawler-->>Backend: Legal Cases
+    and
+        Backend->>Perplexity: Search Latest News
+        Perplexity-->>Backend: News Articles
+        Backend->>Sentiment: Analyze Each Article
+        Sentiment-->>Backend: Article Sentiments
+    end
+    
+    Backend->>RiskScoring: Calculate Risk Score
+    RiskScoring-->>Backend: Risk Assessment
+    
+    Backend->>Database: Save Results
+    Backend-->>Frontend: Complete Analysis Result
+    Frontend-->>User: Display Results
+```
+
+## 🧩 Komponen Sistem
+
+```mermaid
+graph LR
+    subgraph Frontend["🎨 Frontend (Next.js)"]
+        A[CompanySearchForm] --> B[useAnalysis Hook]
+        B --> C[API Client]
+        C --> D[RiskScoreBadge]
+        C --> E[NewsArticlesList]
+        C --> F[LegalRecordsTable]
+        C --> G[EvidenceSummary]
+        C --> H[ResultsChart]
+        C --> I[SourceCitations]
+    end
+    
+    subgraph Backend["⚙️ Backend (FastAPI)"]
+        J[Company API] --> K[PerplexityService]
+        J --> L[SentimentService]
+        J --> M[MahkamahCrawler]
+        J --> N[RiskScoringService]
+        J --> O[News API]
+        O --> K
+        O --> L
+    end
+    
+    subgraph External["🌐 External Services"]
+        P[Perplexity AI]
+        Q[Mahkamah Agung]
+        R[VADER + Transformers]
+    end
+    
+    C -->|HTTP| J
+    K -->|API| P
+    M -->|Scrape| Q
+    L -->|Use| R
+    
+    style Frontend fill:#e1ffe1
+    style Backend fill:#ffe1f5
+    style External fill:#e1f5ff
+```
+
+## 📊 Workflow Analisis Perusahaan
+
+```mermaid
+flowchart TD
+    Start([User Input:<br/>Nama Perusahaan]) --> Validate{Validasi Input}
+    Validate -->|Invalid| Error[Return Error]
+    Validate -->|Valid| Search[1. Search Company Info<br/>via Perplexity API]
+    
+    Search --> Extract[2. Extract Text<br/>from Perplexity Response]
+    Extract --> Sentiment[3. Analyze Sentiment<br/>VADER + Transformers]
+    
+    Search --> News[4. Search Latest News<br/>via Perplexity API]
+    News --> NewsSentiment[5. Analyze News Sentiment<br/>for Each Article]
+    
+    Search --> Crawl[6. Crawl Legal Records<br/>from Mahkamah Agung]
+    Crawl --> Parse[7. Parse Legal Cases]
+    
+    Sentiment --> Risk[8. Calculate Risk Score<br/>30% Sentiment +<br/>30% Mentions +<br/>40% Legal]
+    NewsSentiment --> Risk
+    Parse --> Risk
+    
+    Risk --> Level{Determine<br/>Risk Level}
+    Level -->|≤30| Green[🟢 HIJAU<br/>Disarankan]
+    Level -->|31-65| Yellow[🟡 KUNING<br/>Perlu Ditinjau]
+    Level -->|>65| Red[🔴 MERAH<br/>Tidak Disarankan]
+    
+    Green --> Save[9. Save to Database]
+    Yellow --> Save
+    Red --> Save
+    
+    Save --> Response[10. Return Complete<br/>Analysis Result]
+    Response --> Display[11. Display in UI]
+    Display --> End([End])
+    
+    Error --> End
+    
+    style Start fill:#e1f5ff
+    style Green fill:#90EE90
+    style Yellow fill:#FFD700
+    style Red fill:#FF6B6B
+    style End fill:#e1f5ff
+```
+
+## 🔍 Risk Scoring Formula
+
+```mermaid
+graph TD
+    A[Input Data] --> B[Sentiment Component<br/>30% Weight]
+    A --> C[Mentions Component<br/>30% Weight]
+    A --> D[Legal Component<br/>40% Weight]
+    
+    B --> E[Calculate Average<br/>Sentiment Score]
+    C --> F[Count Mentions<br/>in Text]
+    D --> G[Count Legal Cases<br/>with Severity]
+    
+    E --> H[Risk Score Formula]
+    F --> H
+    G --> H
+    
+    H --> I[Risk Score<br/>0-100]
+    
+    I --> J{Score Range}
+    J -->|≤30| K[🟢 HIJAU<br/>Disarankan]
+    J -->|31-65| L[🟡 KUNING<br/>Perlu Ditinjau]
+    J -->|>65| M[🔴 MERAH<br/>Tidak Disarankan]
+    
+    style K fill:#90EE90
+    style L fill:#FFD700
+    style M fill:#FF6B6B
+```
+
+## 🗄️ Database Schema
+
+```mermaid
+erDiagram
+    COMPANIES ||--o{ COMPANY_DATA : has
+    COMPANIES ||--o{ SENTIMENT_RESULTS : has
+    COMPANIES ||--o{ LEGAL_RECORDS : has
+    COMPANIES ||--o{ ANALYSIS_SUMMARY : has
+    
+    COMPANIES {
+        int id PK
+        string pt_name UK
+        string perplexity_search_id
+        datetime created_at
+        datetime updated_at
+    }
+    
+    COMPANY_DATA {
+        int id PK
+        int company_id FK
+        string source
+        text raw_text
+        datetime extracted_date
+    }
+    
+    SENTIMENT_RESULTS {
+        int id PK
+        int company_id FK
+        text text_analyzed
+        float positive_score
+        float negative_score
+        float neutral_score
+        float compound_score
+        string sentiment_label
+        datetime analyzed_at
+    }
+    
+    LEGAL_RECORDS {
+        int id PK
+        int company_id FK
+        string case_number
+        string case_date
+        text case_title
+        string case_type
+        text verdict_summary
+        string severity_level
+        text source_url
+        datetime crawled_at
+    }
+    
+    ANALYSIS_SUMMARY {
+        int id PK
+        int company_id FK
+        float sentiment_avg_score
+        int legal_records_count
+        float risk_score
+        string risk_level
+        text recommendation
+        datetime analysis_date
+    }
+```
+
 ## ✨ Fitur Utama
 
 - ✅ **Pencarian Informasi Perusahaan** - Integrasi dengan Perplexity AI untuk mencari informasi lengkap
@@ -142,6 +380,42 @@ npm run dev
 - Frontend: http://localhost:3000
 
 ## 📖 Penggunaan
+
+### Diagram Alur Penggunaan
+
+```mermaid
+graph TD
+    A[User membuka<br/>http://localhost:3000] --> B[Input Nama Perusahaan<br/>di Search Form]
+    B --> C[Klik 'Analisis Perusahaan']
+    C --> D[Loading Indicator<br/>15-50 detik]
+    
+    D --> E[Backend Processing]
+    E --> F[Hasil Analisis]
+    
+    F --> G[Display Results]
+    G --> H[Skor Risiko<br/>dengan Badge Warna]
+    G --> I[Ringkasan Bukti]
+    G --> J[Berita Terbaru<br/>dengan Sentiment]
+    G --> K[Catatan Hukum<br/>Expandable Table]
+    G --> L[Chart Visualisasi]
+    G --> M[Sumber Referensi]
+    
+    H --> N[User Review]
+    I --> N
+    J --> N
+    K --> N
+    L --> N
+    M --> N
+    
+    N --> O{Action}
+    O -->|New Search| B
+    O -->|Export JSON| P[Download Results]
+    O -->|View Details| Q[Expand Sections]
+    
+    style A fill:#e1f5ff
+    style F fill:#90EE90
+    style H fill:#FFD700
+```
 
 ### 1. Analisis Perusahaan
 
@@ -349,4 +623,5 @@ Untuk pertanyaan atau issues, silakan buat issue di GitHub repository.
 ---
 
 **Note**: Pastikan untuk tidak commit file `.env` yang berisi API keys. File tersebut sudah di-ignore oleh `.gitignore`.
+
 
