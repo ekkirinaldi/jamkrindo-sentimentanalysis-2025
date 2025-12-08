@@ -94,9 +94,32 @@ async def analyze_company(request: CompanyAnalysisRequest):
             news_sources = news_data.get('sources', [])
             
             # Analyze sentiment for each news article
+            # First, check if news is directly related to the company
+            company_name_lower = request.pt_name.lower()
+            company_keywords = [company_name_lower]
+            # Extract key words from company name (e.g., "Bank Mandiri" -> ["bank", "mandiri"])
+            company_words = [w for w in company_name_lower.split() if len(w) > 3]
+            company_keywords.extend(company_words)
+            
             articles_with_sentiment = []
             for article in news_data.get('news_articles', []):
-                text_to_analyze = f"{article.get('title', '')} {article.get('summary', '')}"
+                title = article.get('title', '')
+                summary = article.get('summary', '')
+                combined_text = f"{title} {summary}".lower()
+                
+                # Check if news is directly related to the company
+                is_relevant = False
+                for keyword in company_keywords:
+                    if keyword in combined_text:
+                        is_relevant = True
+                        break
+                
+                # Skip news that doesn't mention the company
+                if not is_relevant:
+                    logger.debug(f"Berita tidak relevan (tidak menyebutkan {request.pt_name}): {title[:50]}...")
+                    continue
+                
+                text_to_analyze = f"{title} {summary}"
                 text_to_analyze = perplexity_service.extract_sentiment_text(text_to_analyze)
                 
                 if len(text_to_analyze.strip()) < 10:
@@ -107,13 +130,14 @@ async def analyze_company(request: CompanyAnalysisRequest):
                     continue
                 
                 articles_with_sentiment.append({
-                    "title": article.get('title', 'Tidak ada judul'),
-                    "summary": article.get('summary', 'Tidak ada ringkasan'),
+                    "title": title,
+                    "summary": summary,
                     "source_url": article.get('source_url', ''),
                     "date": article.get('date'),
                     "sentiment_label": sentiment_result.get('sentiment_label', 'NETRAL'),
                     "sentiment_score": sentiment_result.get('consensus_score', 0.5),
-                    "confidence": sentiment_result.get('confidence', 0.0)
+                    "confidence": sentiment_result.get('confidence', 0.0),
+                    "is_relevant": True  # Mark as relevant since we filtered
                 })
             
             # Calculate statistics
@@ -147,9 +171,29 @@ async def analyze_company(request: CompanyAnalysisRequest):
             }
         
         # 5. Risk calculation
+        # Combine sentiment from company search and news analysis
+        combined_sentiment_data = sentiment_results.copy()
+        
+        # If we have news analysis, incorporate it into risk calculation
+        if news_analysis and news_analysis.get('total_articles', 0) > 0:
+            # Add news sentiment scores to the analysis
+            news_scores = [a.get('sentiment_score', 0.5) for a in news_analysis.get('articles', [])]
+            if news_scores:
+                # Combine with existing sentiment scores
+                existing_scores = [r.get('consensus_score', 0.5) for r in sentiment_results.get('details', []) if 'consensus_score' in r]
+                all_scores = existing_scores + news_scores
+                
+                # Recalculate statistics including news
+                combined_sentiment_data['total_texts'] = len(all_scores)
+                combined_sentiment_data['valid_analyses'] = len(all_scores)
+                combined_sentiment_data['average_score'] = sum(all_scores) / len(all_scores) if all_scores else 0.5
+                combined_sentiment_data['positive_count'] = sum(1 for s in all_scores if s >= 0.6)
+                combined_sentiment_data['neutral_count'] = sum(1 for s in all_scores if 0.4 < s < 0.6)
+                combined_sentiment_data['negative_count'] = sum(1 for s in all_scores if s <= 0.4)
+        
         risk_scorer = RiskScoringService()
         risk_analysis = risk_scorer.calculate_risk_score(
-            sentiment_results,
+            combined_sentiment_data,
             legal_results
         )
         

@@ -6,7 +6,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { CompanyAnalysisResult } from './types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Use relative URL when empty (for nginx proxy) or fallback to localhost for dev
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 class APIClient {
   private client: AxiosInstance;

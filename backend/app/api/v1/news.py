@@ -120,3 +120,5 @@ async def analyze_news(request: NewsAnalysisRequest):
             error=f"Gagal menganalisis berita: {str(e)}"
         )
 
+
+

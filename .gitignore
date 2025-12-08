@@ -146,3 +146,7 @@ models/
 .cursor/
 *.plan.md
 
+# Documentation folders (internal use only)
+.specs/
+.status/
+
